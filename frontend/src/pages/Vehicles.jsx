@@ -1,24 +1,90 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { vehiclesAPI } from '../lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
-import { formatDateTime } from '../lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Car, Search, User, Phone, Mail, CreditCard } from 'lucide-react';
+import { Plus, Car, Search, User, Phone, Mail } from 'lucide-react';
+
+// Lista de marcas y modelos populares en Colombia
+const CAR_BRANDS = [
+    'Chevrolet',
+    'Renault',
+    'Mazda',
+    'Kia',
+    'Nissan',
+    'Toyota',
+    'Hyundai',
+    'Ford',
+    'Volkswagen',
+    'Suzuki',
+    'Honda',
+    'BMW',
+    'Mercedes-Benz',
+    'Audi',
+    'Jeep',
+    'Mitsubishi',
+    'Peugeot',
+    'Citroën',
+    'Fiat',
+    'Otro'
+];
+
+const CAR_MODELS = {
+    'Chevrolet': ['Spark', 'Sail', 'Onix', 'Tracker', 'Captiva', 'Equinox', 'Blazer', 'Tahoe', 'Trailblazer', 'N300', 'N400', 'Otro'],
+    'Renault': ['Kwid', 'Sandero', 'Stepway', 'Logan', 'Duster', 'Koleos', 'Captur', 'Oroch', 'Kangoo', 'Master', 'Otro'],
+    'Mazda': ['Mazda 2', 'Mazda 3', 'Mazda 6', 'CX-3', 'CX-30', 'CX-5', 'CX-9', 'MX-5', 'BT-50', 'Otro'],
+    'Kia': ['Picanto', 'Rio', 'Cerato', 'K5', 'Soul', 'Seltos', 'Sportage', 'Sorento', 'Carnival', 'Stinger', 'Otro'],
+    'Nissan': ['March', 'Versa', 'Sentra', 'Kicks', 'Qashqai', 'X-Trail', 'Pathfinder', 'Frontier', 'NP300', 'Otro'],
+    'Toyota': ['Yaris', 'Corolla', 'Camry', 'Prius', 'C-HR', 'RAV4', 'Fortuner', 'Land Cruiser', 'Hilux', '4Runner', 'Otro'],
+    'Hyundai': ['Grand i10', 'Accent', 'Elantra', 'Sonata', 'Venue', 'Kona', 'Tucson', 'Santa Fe', 'Palisade', 'Creta', 'Otro'],
+    'Ford': ['Fiesta', 'Focus', 'Fusion', 'Mustang', 'EcoSport', 'Escape', 'Explorer', 'Expedition', 'Ranger', 'F-150', 'Otro'],
+    'Volkswagen': ['Gol', 'Polo', 'Virtus', 'Jetta', 'Passat', 'T-Cross', 'Taos', 'Tiguan', 'Touareg', 'Amarok', 'Otro'],
+    'Suzuki': ['Alto', 'Swift', 'Baleno', 'Ciaz', 'S-Presso', 'Vitara', 'Grand Vitara', 'Jimny', 'XL7', 'Otro'],
+    'Honda': ['Brio', 'City', 'Civic', 'Accord', 'HR-V', 'CR-V', 'Pilot', 'Passport', 'Odyssey', 'Otro'],
+    'BMW': ['Serie 1', 'Serie 2', 'Serie 3', 'Serie 4', 'Serie 5', 'Serie 7', 'X1', 'X3', 'X5', 'X7', 'Otro'],
+    'Mercedes-Benz': ['Clase A', 'Clase C', 'Clase E', 'Clase S', 'GLA', 'GLC', 'GLE', 'GLS', 'Sprinter', 'Otro'],
+    'Audi': ['A1', 'A3', 'A4', 'A6', 'A8', 'Q2', 'Q3', 'Q5', 'Q7', 'Q8', 'Otro'],
+    'Jeep': ['Renegade', 'Compass', 'Cherokee', 'Grand Cherokee', 'Wrangler', 'Gladiator', 'Otro'],
+    'Mitsubishi': ['Mirage', 'Lancer', 'ASX', 'Outlander', 'Eclipse Cross', 'Montero', 'L200', 'Otro'],
+    'Peugeot': ['208', '301', '308', '408', '508', '2008', '3008', '5008', 'Partner', 'Otro'],
+    'Citroën': ['C3', 'C4', 'C5 Aircross', 'Berlingo', 'Jumpy', 'Otro'],
+    'Fiat': ['Mobi', 'Argo', 'Cronos', 'Tipo', '500', 'Toro', 'Ducato', 'Otro'],
+    'Otro': ['Especificar en notas']
+};
+
+const COLORS = [
+    'Blanco',
+    'Negro',
+    'Gris',
+    'Plata',
+    'Rojo',
+    'Azul',
+    'Verde',
+    'Amarillo',
+    'Naranja',
+    'Café',
+    'Beige',
+    'Otro'
+];
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 30 }, (_, i) => CURRENT_YEAR - i);
 
 export const Vehicles = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [availableModels, setAvailableModels] = useState([]);
     const [formData, setFormData] = useState({
         plate: '',
         brand: '',
         model: '',
-        year: new Date().getFullYear(),
+        year: CURRENT_YEAR.toString(),
         color: '',
         vin: '',
         client_name: '',
@@ -27,7 +93,7 @@ export const Vehicles = () => {
         client_cedula: '',
     });
 
-    const fetchVehicles = async () => {
+    const fetchVehicles = useCallback(async () => {
         try {
             const response = await vehiclesAPI.getAll();
             setVehicles(response.data);
@@ -36,14 +102,45 @@ export const Vehicles = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchVehicles();
-    }, []);
+    }, [fetchVehicles]);
+
+    // Update available models when brand changes
+    useEffect(() => {
+        if (formData.brand && CAR_MODELS[formData.brand]) {
+            setAvailableModels(CAR_MODELS[formData.brand]);
+        } else {
+            setAvailableModels([]);
+        }
+    }, [formData.brand]);
+
+    const handleBrandChange = (value) => {
+        setFormData(prev => ({ ...prev, brand: value, model: '' }));
+    };
+
+    const handleModelChange = (value) => {
+        setFormData(prev => ({ ...prev, model: value }));
+    };
+
+    const handleYearChange = (value) => {
+        setFormData(prev => ({ ...prev, year: value }));
+    };
+
+    const handleColorChange = (value) => {
+        setFormData(prev => ({ ...prev, color: value }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (!formData.brand || !formData.model || !formData.color) {
+            toast.error('Completa todos los campos del vehículo');
+            return;
+        }
+
         try {
             await vehiclesAPI.create({
                 ...formData,
@@ -57,7 +154,7 @@ export const Vehicles = () => {
                 plate: '',
                 brand: '',
                 model: '',
-                year: new Date().getFullYear(),
+                year: CURRENT_YEAR.toString(),
                 color: '',
                 vin: '',
                 client_name: '',
@@ -111,7 +208,7 @@ export const Vehicles = () => {
                                         <Input
                                             id="plate"
                                             value={formData.plate}
-                                            onChange={(e) => setFormData({ ...formData, plate: e.target.value.toUpperCase() })}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, plate: e.target.value.toUpperCase() }))}
                                             required
                                             className="font-mono"
                                             placeholder="ABC123"
@@ -119,61 +216,71 @@ export const Vehicles = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="brand">Marca *</Label>
-                                        <Input
-                                            id="brand"
-                                            value={formData.brand}
-                                            onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                                            required
-                                            placeholder="Toyota"
-                                            data-testid="vehicle-brand"
-                                        />
+                                        <Label>Año *</Label>
+                                        <Select value={formData.year} onValueChange={handleYearChange}>
+                                            <SelectTrigger data-testid="vehicle-year">
+                                                <SelectValue placeholder="Año" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {YEARS.map((year) => (
+                                                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="model">Modelo *</Label>
-                                        <Input
-                                            id="model"
-                                            value={formData.model}
-                                            onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                                            required
-                                            placeholder="Corolla"
-                                            data-testid="vehicle-model"
-                                        />
+                                        <Label>Marca *</Label>
+                                        <Select value={formData.brand} onValueChange={handleBrandChange}>
+                                            <SelectTrigger data-testid="vehicle-brand">
+                                                <SelectValue placeholder="Seleccionar marca" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {CAR_BRANDS.map((brand) => (
+                                                    <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="year">Año *</Label>
-                                        <Input
-                                            id="year"
-                                            type="number"
-                                            value={formData.year}
-                                            onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                                            required
-                                            min="1900"
-                                            max={new Date().getFullYear() + 1}
-                                            data-testid="vehicle-year"
-                                        />
+                                        <Label>Modelo *</Label>
+                                        <Select 
+                                            value={formData.model} 
+                                            onValueChange={handleModelChange}
+                                            disabled={!formData.brand}
+                                        >
+                                            <SelectTrigger data-testid="vehicle-model">
+                                                <SelectValue placeholder={formData.brand ? "Seleccionar modelo" : "Primero seleccione marca"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableModels.map((model) => (
+                                                    <SelectItem key={model} value={model}>{model}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="color">Color *</Label>
-                                        <Input
-                                            id="color"
-                                            value={formData.color}
-                                            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                                            required
-                                            placeholder="Blanco"
-                                            data-testid="vehicle-color"
-                                        />
+                                        <Label>Color *</Label>
+                                        <Select value={formData.color} onValueChange={handleColorChange}>
+                                            <SelectTrigger data-testid="vehicle-color">
+                                                <SelectValue placeholder="Seleccionar color" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {COLORS.map((color) => (
+                                                    <SelectItem key={color} value={color}>{color}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="vin">VIN</Label>
                                         <Input
                                             id="vin"
                                             value={formData.vin}
-                                            onChange={(e) => setFormData({ ...formData, vin: e.target.value.toUpperCase() })}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, vin: e.target.value.toUpperCase() }))}
                                             className="font-mono"
                                             placeholder="Opcional"
                                             data-testid="vehicle-vin"
@@ -193,7 +300,7 @@ export const Vehicles = () => {
                                     <Input
                                         id="client_name"
                                         value={formData.client_name}
-                                        onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, client_name: e.target.value }))}
                                         required
                                         data-testid="vehicle-client-name"
                                     />
@@ -204,7 +311,7 @@ export const Vehicles = () => {
                                         <Input
                                             id="client_phone"
                                             value={formData.client_phone}
-                                            onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, client_phone: e.target.value }))}
                                             required
                                             data-testid="vehicle-client-phone"
                                         />
@@ -214,7 +321,7 @@ export const Vehicles = () => {
                                         <Input
                                             id="client_cedula"
                                             value={formData.client_cedula}
-                                            onChange={(e) => setFormData({ ...formData, client_cedula: e.target.value })}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, client_cedula: e.target.value }))}
                                             data-testid="vehicle-client-cedula"
                                         />
                                     </div>
@@ -225,7 +332,7 @@ export const Vehicles = () => {
                                         id="client_email"
                                         type="email"
                                         value={formData.client_email}
-                                        onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, client_email: e.target.value }))}
                                         data-testid="vehicle-client-email"
                                     />
                                 </div>
