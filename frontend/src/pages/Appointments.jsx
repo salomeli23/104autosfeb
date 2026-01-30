@@ -320,7 +320,6 @@ export const Appointments = () => {
                                         <div
                                             key={service.value}
                                             className="flex items-center space-x-2 p-2 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
-                                            onClick={() => handleServiceToggle(service.value)}
                                         >
                                             <Checkbox
                                                 id={`service-${service.value}`}
@@ -328,7 +327,10 @@ export const Appointments = () => {
                                                 onCheckedChange={() => handleServiceToggle(service.value)}
                                                 data-testid={`service-checkbox-${service.value}`}
                                             />
-                                            <label htmlFor={`service-${service.value}`} className="text-sm cursor-pointer">
+                                            <label 
+                                                htmlFor={`service-${service.value}`} 
+                                                className="text-sm cursor-pointer flex-1"
+                                            >
                                                 {service.label}
                                             </label>
                                         </div>
