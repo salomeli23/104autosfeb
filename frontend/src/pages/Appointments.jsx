@@ -129,14 +129,17 @@ export const Appointments = () => {
         setFormData(prev => ({ ...prev, time_slot: value }));
     };
 
-    const handleServiceToggle = (service) => {
-        setFormData(prev => ({
-            ...prev,
-            services: prev.services.includes(service)
-                ? prev.services.filter(s => s !== service)
-                : [...prev.services, service]
-        }));
-    };
+    const handleServiceToggle = useCallback((service) => {
+        setFormData(prev => {
+            const isSelected = prev.services.includes(service);
+            return {
+                ...prev,
+                services: isSelected
+                    ? prev.services.filter(s => s !== service)
+                    : [...prev.services, service]
+            };
+        });
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
