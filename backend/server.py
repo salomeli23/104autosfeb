@@ -462,9 +462,12 @@ async def get_appointment(appointment_id: str, current_user: dict = Depends(get_
         raise HTTPException(status_code=404, detail="Cita no encontrada")
     return AppointmentResponse(**appointment)
 
+class StatusUpdate(BaseModel):
+    status: ServiceStatus
+
 @api_router.put("/appointments/{appointment_id}/status")
-async def update_appointment_status(appointment_id: str, status: ServiceStatus, current_user: dict = Depends(get_current_user)):
-    result = await db.appointments.update_one({"id": appointment_id}, {"$set": {"status": status.value}})
+async def update_appointment_status(appointment_id: str, data: StatusUpdate, current_user: dict = Depends(get_current_user)):
+    result = await db.appointments.update_one({"id": appointment_id}, {"$set": {"status": data.status.value}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Cita no encontrada")
     return {"message": "Estado actualizado"}
@@ -629,12 +632,12 @@ async def get_service_order(order_id: str, current_user: dict = Depends(get_curr
     return ServiceOrderResponse(**order)
 
 @api_router.put("/service-orders/{order_id}/status")
-async def update_service_order_status(order_id: str, status: ServiceStatus, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
-    update_data = {"status": status.value}
+async def update_service_order_status(order_id: str, data: StatusUpdate, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    update_data = {"status": data.status.value}
     
-    if status == ServiceStatus.EN_PROCESO:
+    if data.status == ServiceStatus.EN_PROCESO:
         update_data["started_at"] = datetime.now(timezone.utc).isoformat()
-    elif status == ServiceStatus.TERMINADO:
+    elif data.status == ServiceStatus.TERMINADO:
         update_data["completed_at"] = datetime.now(timezone.utc).isoformat()
     
     result = await db.service_orders.update_one({"id": order_id}, {"$set": update_data})
@@ -642,7 +645,7 @@ async def update_service_order_status(order_id: str, status: ServiceStatus, back
         raise HTTPException(status_code=404, detail="Orden no encontrada")
     
     # Notify client when completed
-    if status == ServiceStatus.TERMINADO:
+    if data.status == ServiceStatus.TERMINADO:
         order = await db.service_orders.find_one({"id": order_id}, {"_id": 0})
         if order:
             vehicle = await db.vehicles.find_one({"id": order["vehicle_id"]}, {"_id": 0})
@@ -658,15 +661,18 @@ async def update_service_order_status(order_id: str, status: ServiceStatus, back
     
     return {"message": "Estado actualizado"}
 
+class TechnicianAssign(BaseModel):
+    technician_id: str
+
 @api_router.put("/service-orders/{order_id}/assign")
-async def assign_technician(order_id: str, technician_id: str, current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.ASESOR]))):
-    technician = await db.users.find_one({"id": technician_id, "role": "tecnico"}, {"_id": 0})
+async def assign_technician(order_id: str, data: TechnicianAssign, current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.ASESOR]))):
+    technician = await db.users.find_one({"id": data.technician_id, "role": "tecnico"}, {"_id": 0})
     if not technician:
         raise HTTPException(status_code=404, detail="Técnico no encontrado")
     
     result = await db.service_orders.update_one(
         {"id": order_id},
-        {"$set": {"assigned_technician_id": technician_id, "assigned_technician_name": technician["name"]}}
+        {"$set": {"assigned_technician_id": data.technician_id, "assigned_technician_name": technician["name"]}}
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
@@ -674,7 +680,7 @@ async def assign_technician(order_id: str, technician_id: str, current_user: dic
     # Create notification for technician
     notification_doc = {
         "id": str(uuid.uuid4()),
-        "recipient_id": technician_id,
+        "recipient_id": data.technician_id,
         "notification_type": NotificationType.INTERNAL.value,
         "title": "Nueva Orden Asignada",
         "message": f"Se te ha asignado la orden #{order_id[:8]}",
