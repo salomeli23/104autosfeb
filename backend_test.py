@@ -288,17 +288,19 @@ class PolarizadosYAAPITester:
         success, response, status = self.make_request('GET', 'service-orders', token=self.admin_token, expected_status=200)
         self.log_test("Get All Service Orders", success, f"Status: {status}")
 
-        # Update service order status
+        # Update service order status (FIXED: now uses JSON body)
         if 'service_order' in self.test_data:
+            status_data = {"status": "en_proceso"}
             success, response, status = self.make_request('PUT', f'service-orders/{self.test_data["service_order"]["id"]}/status', 
-                                                        None, self.admin_token, expected_status=200)
-            self.log_test("Update Service Order Status", success, f"Status: {status}")
+                                                        status_data, self.admin_token, expected_status=200)
+            self.log_test("Update Service Order Status (JSON body)", success, f"Status: {status}")
 
-        # Assign technician
+        # Assign technician (FIXED: now uses JSON body)
         if 'service_order' in self.test_data and 'tecnico_user' in self.test_data:
+            assign_data = {"technician_id": self.test_data['tecnico_user']['id']}
             success, response, status = self.make_request('PUT', f'service-orders/{self.test_data["service_order"]["id"]}/assign', 
-                                                        None, self.admin_token, expected_status=200)
-            self.log_test("Assign Technician", success, f"Status: {status}")
+                                                        assign_data, self.admin_token, expected_status=200)
+            self.log_test("Assign Technician (JSON body)", success, f"Status: {status}")
 
     def test_notification_endpoints(self):
         """Test notification endpoints"""
