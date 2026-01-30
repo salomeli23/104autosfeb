@@ -174,11 +174,12 @@ class PolarizadosYAAPITester:
         success, response, status = self.make_request('GET', 'appointments', {'date': tomorrow}, self.asesor_token, expected_status=200)
         self.log_test("Get Appointments by Date", success, f"Status: {status}")
 
-        # Update appointment status
+        # Update appointment status (FIXED: now uses JSON body)
         if 'appointment' in self.test_data:
+            status_data = {"status": "en_proceso"}
             success, response, status = self.make_request('PUT', f'appointments/{self.test_data["appointment"]["id"]}/status', 
-                                                        None, self.asesor_token, expected_status=200)
-            self.log_test("Update Appointment Status", success, f"Status: {status}")
+                                                        status_data, self.asesor_token, expected_status=200)
+            self.log_test("Update Appointment Status (JSON body)", success, f"Status: {status}")
 
     def test_inspection_endpoints(self):
         """Test 360° inspection endpoints"""
