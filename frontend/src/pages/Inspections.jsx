@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Checkbox } from '../components/ui/checkbox';
 import { INSPECTION_AREAS, formatDateTime } from '../lib/utils';
@@ -123,6 +123,9 @@ export const Inspections = () => {
                             <DialogTitle className="font-heading text-xl">
                                 Revisión 360° - Paso {step} de 2
                             </DialogTitle>
+                            <DialogDescription>
+                                {step === 1 ? 'Seleccione el vehículo a inspeccionar' : 'Registre el estado de cada área del vehículo'}
+                            </DialogDescription>
                         </DialogHeader>
 
                         {step === 1 && (

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { formatDateTime } from '../lib/utils';
 import { toast } from 'sonner';
 import { Plus, Car, Search, User, Phone, Mail, CreditCard } from 'lucide-react';
@@ -96,6 +96,7 @@ export const Vehicles = () => {
                     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="font-heading text-xl">Registrar Vehículo</DialogTitle>
+                            <DialogDescription>Ingrese los datos del vehículo y del cliente propietario</DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {/* Vehicle Info */}

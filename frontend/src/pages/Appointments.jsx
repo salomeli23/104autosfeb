@@ -6,7 +6,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Calendar } from '../components/ui/calendar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Checkbox } from '../components/ui/checkbox';
 import { StatusBadge } from '../components/StatusBadge';
@@ -129,6 +129,7 @@ export const Appointments = () => {
                     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="font-heading text-xl">Agendar Nueva Cita</DialogTitle>
+                            <DialogDescription>Complete los datos del cliente y vehículo para agendar una cita</DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {/* Client Info */}

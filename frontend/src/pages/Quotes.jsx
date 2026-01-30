@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { StatusBadge } from '../components/StatusBadge';
 import { ServiceBadge } from '../components/ServiceBadge';
@@ -143,6 +143,7 @@ export const Quotes = () => {
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="font-heading text-xl">Nueva Cotización</DialogTitle>
+                            <DialogDescription>Seleccione el vehículo y agregue los servicios a cotizar</DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-6">
