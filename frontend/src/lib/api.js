@@ -59,7 +59,7 @@ export const appointmentsAPI = {
     create: (data) => api.post('/appointments', data),
     getAll: (date) => api.get('/appointments', { params: date ? { date } : {} }),
     getById: (id) => api.get(`/appointments/${id}`),
-    updateStatus: (id, status) => api.put(`/appointments/${id}/status`, null, { params: { status } }),
+    updateStatus: (id, status) => api.put(`/appointments/${id}/status`, { status }),
 };
 
 // Inspections endpoints
@@ -82,9 +82,9 @@ export const serviceOrdersAPI = {
     create: (data) => api.post('/service-orders', data),
     getAll: (params) => api.get('/service-orders', { params }),
     getById: (id) => api.get(`/service-orders/${id}`),
-    updateStatus: (id, status) => api.put(`/service-orders/${id}/status`, null, { params: { status } }),
+    updateStatus: (id, status) => api.put(`/service-orders/${id}/status`, { status }),
     assignTechnician: (orderId, technicianId) => 
-        api.put(`/service-orders/${orderId}/assign`, null, { params: { technician_id: technicianId } }),
+        api.put(`/service-orders/${orderId}/assign`, { technician_id: technicianId }),
 };
 
 // Notifications endpoints
