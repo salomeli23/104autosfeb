@@ -104,6 +104,16 @@ class PolarizadosYAAPITester:
         success, response, status = self.make_request('POST', 'auth/login', login_data, expected_status=200)
         self.log_test("Admin Login", success, f"Status: {status}")
 
+        # Test login with specific admin credentials from requirements
+        admin_login_data = {
+            "email": "admin@polarizadosya.com",
+            "password": "admin123"
+        }
+        success, response, status = self.make_request('POST', 'auth/login', admin_login_data, expected_status=200)
+        self.log_test("Specific Admin Login (admin@polarizadosya.com)", success, f"Status: {status}")
+        if success:
+            self.admin_token = response.get('access_token')  # Use this token for subsequent tests
+
         # Test /auth/me endpoint
         success, response, status = self.make_request('GET', 'auth/me', token=self.admin_token, expected_status=200)
         self.log_test("Get Current User", success, f"Status: {status}")
