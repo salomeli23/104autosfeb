@@ -60,6 +60,7 @@ export const ServiceOrders = () => {
 
     useEffect(() => {
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
 
     const handleServiceToggle = (service) => {
