@@ -60,6 +60,13 @@ class ServiceStatus(str, Enum):
     EN_REVISION = "en_revision"
     TERMINADO = "terminado"
 
+class VehicleStatus(str, Enum):
+    AGENDADO = "agendado"
+    INGRESADO = "ingresado"
+    CON_TECNICO = "con_tecnico"
+    EN_PROCESO = "en_proceso"
+    FINALIZADO = "finalizado"
+
 class NotificationType(str, Enum):
     INTERNAL = "internal"
     EMAIL = "email"
