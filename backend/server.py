@@ -121,6 +121,10 @@ class VehicleResponse(BaseModel):
     client_phone: str
     client_email: Optional[str] = None
     client_cedula: Optional[str] = None
+    status: Optional[str] = None
+    assigned_technician_id: Optional[str] = None
+    assigned_technician_name: Optional[str] = None
+    current_service_order_id: Optional[str] = None
     created_at: str
     created_by: str
 
