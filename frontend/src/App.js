@@ -100,6 +100,14 @@ function AppRoutes() {
                 } 
             />
             <Route 
+                path="/assign" 
+                element={
+                    <ProtectedRoute allowedRoles={['admin', 'asesor']}>
+                        <Assign />
+                    </ProtectedRoute>
+                } 
+            />
+            <Route 
                 path="/quotes" 
                 element={
                     <ProtectedRoute allowedRoles={['admin', 'asesor']}>
