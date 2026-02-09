@@ -6,8 +6,6 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { Sun, Moon, Eye, EyeOff } from 'lucide-react';
 
@@ -16,19 +14,11 @@ const BG_IMAGE = "https://images.unsplash.com/photo-1647649641463-724358c4387e?w
 
 export const Login = () => {
     const navigate = useNavigate();
-    const { login, register } = useAuth();
+    const { login } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    
     const [loginData, setLoginData] = useState({ email: '', password: '' });
-    const [registerData, setRegisterData] = useState({
-        email: '',
-        password: '',
-        name: '',
-        role: 'asesor',
-        phone: '',
-    });
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -39,20 +29,6 @@ export const Login = () => {
             navigate('/dashboard');
         } catch (error) {
             toast.error(error.response?.data?.detail || 'Error al iniciar sesión');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleRegister = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            await register(registerData);
-            toast.success('¡Cuenta creada exitosamente!');
-            navigate('/dashboard');
-        } catch (error) {
-            toast.error(error.response?.data?.detail || 'Error al registrar');
         } finally {
             setLoading(false);
         }
@@ -106,144 +82,55 @@ export const Login = () => {
                     <CardHeader className="text-center">
                         <CardTitle className="font-heading text-2xl">Bienvenido</CardTitle>
                         <CardDescription>
-                            Ingresa a tu cuenta o regístrate para comenzar
+                            Ingresa a tu cuenta para continuar
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Tabs defaultValue="login" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 mb-6">
-                                <TabsTrigger value="login" data-testid="login-tab">
-                                    Iniciar Sesión
-                                </TabsTrigger>
-                                <TabsTrigger value="register" data-testid="register-tab">
-                                    Registrarse
-                                </TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="login">
-                                <form onSubmit={handleLogin} className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="login-email">Correo Electrónico</Label>
-                                        <Input
-                                            id="login-email"
-                                            type="email"
-                                            placeholder="correo@ejemplo.com"
-                                            value={loginData.email}
-                                            onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                                            required
-                                            data-testid="login-email-input"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="login-password">Contraseña</Label>
-                                        <div className="relative">
-                                            <Input
-                                                id="login-password"
-                                                type={showPassword ? "text" : "password"}
-                                                placeholder="••••••••"
-                                                value={loginData.password}
-                                                onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                                                required
-                                                data-testid="login-password-input"
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="absolute right-0 top-0 h-full px-3"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                            >
-                                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <Button 
-                                        type="submit" 
-                                        className="w-full brand-glow" 
-                                        disabled={loading}
-                                        data-testid="login-submit-btn"
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="login-email">Correo Electrónico</Label>
+                                <Input
+                                    id="login-email"
+                                    type="email"
+                                    placeholder="correo@ejemplo.com"
+                                    value={loginData.email}
+                                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                                    required
+                                    data-testid="login-email-input"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="login-password">Contraseña</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="login-password"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        value={loginData.password}
+                                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                                        required
+                                        data-testid="login-password-input"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-0 top-0 h-full px-3"
+                                        onClick={() => setShowPassword(!showPassword)}
                                     >
-                                        {loading ? 'Ingresando...' : 'Ingresar'}
+                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </Button>
-                                </form>
-                            </TabsContent>
-
-                            <TabsContent value="register">
-                                <form onSubmit={handleRegister} className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="register-name">Nombre Completo</Label>
-                                        <Input
-                                            id="register-name"
-                                            type="text"
-                                            placeholder="Juan Pérez"
-                                            value={registerData.name}
-                                            onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
-                                            required
-                                            data-testid="register-name-input"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="register-email">Correo Electrónico</Label>
-                                        <Input
-                                            id="register-email"
-                                            type="email"
-                                            placeholder="correo@ejemplo.com"
-                                            value={registerData.email}
-                                            onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
-                                            required
-                                            data-testid="register-email-input"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="register-phone">Teléfono</Label>
-                                        <Input
-                                            id="register-phone"
-                                            type="tel"
-                                            placeholder="300 123 4567"
-                                            value={registerData.phone}
-                                            onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
-                                            data-testid="register-phone-input"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="register-role">Rol</Label>
-                                        <Select
-                                            value={registerData.role}
-                                            onValueChange={(value) => setRegisterData({ ...registerData, role: value })}
-                                        >
-                                            <SelectTrigger data-testid="register-role-select">
-                                                <SelectValue placeholder="Selecciona un rol" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="asesor">Asesor Comercial</SelectItem>
-                                                <SelectItem value="tecnico">Técnico</SelectItem>
-                                                <SelectItem value="admin">Administrador</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="register-password">Contraseña</Label>
-                                        <Input
-                                            id="register-password"
-                                            type="password"
-                                            placeholder="••••••••"
-                                            value={registerData.password}
-                                            onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                                            required
-                                            data-testid="register-password-input"
-                                        />
-                                    </div>
-                                    <Button 
-                                        type="submit" 
-                                        className="w-full brand-glow" 
-                                        disabled={loading}
-                                        data-testid="register-submit-btn"
-                                    >
-                                        {loading ? 'Registrando...' : 'Crear Cuenta'}
-                                    </Button>
-                                </form>
-                            </TabsContent>
-                        </Tabs>
+                                </div>
+                            </div>
+                            <Button 
+                                type="submit" 
+                                className="w-full brand-glow" 
+                                disabled={loading}
+                                data-testid="login-submit-btn"
+                            >
+                                {loading ? 'Ingresando...' : 'Ingresar'}
+                            </Button>
+                        </form>
                     </CardContent>
                 </Card>
             </div>
