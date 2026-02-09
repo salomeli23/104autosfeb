@@ -397,10 +397,20 @@ async def update_user_role(user_id: str, role: UserRole, current_user: dict = De
 # ==================== VEHICLES ENDPOINTS ====================
 @api_router.post("/vehicles", response_model=VehicleResponse)
 async def create_vehicle(vehicle: VehicleCreate, current_user: dict = Depends(get_current_user)):
+    # Check if vehicle with same plate exists
+    existing = await db.vehicles.find_one({"plate": vehicle.plate.upper()}, {"_id": 0})
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe un vehículo con esta placa")
+    
     vehicle_id = str(uuid.uuid4())
     vehicle_doc = {
         "id": vehicle_id,
         **vehicle.model_dump(),
+        "plate": vehicle.plate.upper(),
+        "status": None,
+        "assigned_technician_id": None,
+        "assigned_technician_name": None,
+        "current_service_order_id": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "created_by": current_user["id"]
     }
@@ -408,8 +418,11 @@ async def create_vehicle(vehicle: VehicleCreate, current_user: dict = Depends(ge
     return VehicleResponse(**{k: v for k, v in vehicle_doc.items() if k != "_id"})
 
 @api_router.get("/vehicles", response_model=List[VehicleResponse])
-async def get_vehicles(current_user: dict = Depends(get_current_user)):
-    vehicles = await db.vehicles.find({}, {"_id": 0}).to_list(1000)
+async def get_vehicles(status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    query = {}
+    if status:
+        query["status"] = status
+    vehicles = await db.vehicles.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return [VehicleResponse(**v) for v in vehicles]
 
 @api_router.get("/vehicles/{vehicle_id}", response_model=VehicleResponse)
@@ -424,6 +437,56 @@ async def get_vehicle_by_plate(plate: str, current_user: dict = Depends(get_curr
     vehicle = await db.vehicles.find_one({"plate": plate.upper()}, {"_id": 0})
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    return VehicleResponse(**vehicle)
+
+class VehicleStatusUpdate(BaseModel):
+    status: VehicleStatus
+
+@api_router.put("/vehicles/{vehicle_id}/status")
+async def update_vehicle_status(vehicle_id: str, data: VehicleStatusUpdate, current_user: dict = Depends(get_current_user)):
+    result = await db.vehicles.update_one({"id": vehicle_id}, {"$set": {"status": data.status.value}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    return {"message": "Estado actualizado"}
+
+class VehicleTechnicianAssign(BaseModel):
+    technician_id: str
+
+@api_router.put("/vehicles/{vehicle_id}/assign-technician")
+async def assign_technician_to_vehicle(vehicle_id: str, data: VehicleTechnicianAssign, current_user: dict = Depends(require_roles([UserRole.ADMIN, UserRole.ASESOR]))):
+    # Get technician info
+    technician = await db.users.find_one({"id": data.technician_id, "role": "tecnico"}, {"_id": 0})
+    if not technician:
+        raise HTTPException(status_code=404, detail="Técnico no encontrado")
+    
+    # Update vehicle
+    result = await db.vehicles.update_one(
+        {"id": vehicle_id},
+        {"$set": {
+            "assigned_technician_id": data.technician_id,
+            "assigned_technician_name": technician["name"],
+            "status": VehicleStatus.CON_TECNICO.value
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    
+    # Create notification for technician
+    notification_doc = {
+        "id": str(uuid.uuid4()),
+        "recipient_id": data.technician_id,
+        "notification_type": NotificationType.INTERNAL.value,
+        "title": "Vehículo Asignado",
+        "message": f"Se te ha asignado el vehículo para servicio",
+        "read": False,
+        "related_entity_type": "vehicle",
+        "related_entity_id": vehicle_id,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.notifications.insert_one(notification_doc)
+    
+    return {"message": "Técnico asignado correctamente"}
     return VehicleResponse(**vehicle)
 
 # ==================== APPOINTMENTS ENDPOINTS ====================
