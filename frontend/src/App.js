@@ -9,6 +9,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Appointments } from './pages/Appointments';
 import { Vehicles } from './pages/Vehicles';
 import { Inspections } from './pages/Inspections';
+import { Assign } from './pages/Assign';
 import { Quotes } from './pages/Quotes';
 import { ServiceOrders } from './pages/ServiceOrders';
 import { Notifications } from './pages/Notifications';
