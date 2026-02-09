@@ -605,6 +605,13 @@ async def create_inspection(inspection: Inspection360Create, current_user: dict 
         "created_by": current_user["id"]
     }
     await db.inspections.insert_one(inspection_doc)
+    
+    # Update vehicle status to INGRESADO (only if currently AGENDADO)
+    await db.vehicles.update_one(
+        {"id": inspection.vehicle_id, "status": VehicleStatus.AGENDADO.value},
+        {"$set": {"status": VehicleStatus.INGRESADO.value}}
+    )
+    
     return Inspection360Response(**{k: v for k, v in inspection_doc.items() if k != "_id"})
 
 @api_router.get("/inspections/vehicle/{vehicle_id}", response_model=List[Inspection360Response])
