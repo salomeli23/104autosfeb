@@ -1,36 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { vehiclesAPI } from '../lib/api';
-import { Card, CardContent } from '../components/ui/card';
+import { vehiclesAPI, usersAPI } from '../lib/api';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { VehicleStatusBadge } from '../components/VehicleStatusBadge';
 import { toast } from 'sonner';
-import { Plus, Car, Search, User, Phone, Mail } from 'lucide-react';
+import { Plus, Car, Search, User, Phone, Mail, UserPlus, Wrench } from 'lucide-react';
 
-// Lista de marcas y modelos populares en Colombia
+// Lista de marcas y modelos
 const CAR_BRANDS = [
-    'Chevrolet',
-    'Renault',
-    'Mazda',
-    'Kia',
-    'Nissan',
-    'Toyota',
-    'Hyundai',
-    'Ford',
-    'Volkswagen',
-    'Suzuki',
-    'Honda',
-    'BMW',
-    'Mercedes-Benz',
-    'Audi',
-    'Jeep',
-    'Mitsubishi',
-    'Peugeot',
-    'Citroën',
-    'Fiat',
-    'Otro'
+    'Chevrolet', 'Renault', 'Mazda', 'Kia', 'Nissan', 'Toyota', 'Hyundai', 'Ford',
+    'Volkswagen', 'Suzuki', 'Honda', 'BMW', 'Mercedes-Benz', 'Audi', 'Jeep',
+    'Mitsubishi', 'Peugeot', 'Citroën', 'Fiat', 'Otro'
 ];
 
 const CAR_MODELS = {
@@ -56,59 +41,56 @@ const CAR_MODELS = {
     'Otro': ['Especificar en notas']
 };
 
-const COLORS = [
-    'Blanco',
-    'Negro',
-    'Gris',
-    'Plata',
-    'Rojo',
-    'Azul',
-    'Verde',
-    'Amarillo',
-    'Naranja',
-    'Café',
-    'Beige',
-    'Otro'
-];
-
+const COLORS = ['Blanco', 'Negro', 'Gris', 'Plata', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Café', 'Beige', 'Otro'];
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 30 }, (_, i) => CURRENT_YEAR - i);
 
+const STATUS_FILTERS = [
+    { value: 'all', label: 'Todos' },
+    { value: 'agendado', label: 'Agendados' },
+    { value: 'ingresado', label: 'Ingresados' },
+    { value: 'con_tecnico', label: 'Con Técnico' },
+    { value: 'en_proceso', label: 'En Proceso' },
+    { value: 'finalizado', label: 'Finalizados' },
+];
+
 export const Vehicles = () => {
     const [vehicles, setVehicles] = useState([]);
+    const [technicians, setTechnicians] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [selectedTechnician, setSelectedTechnician] = useState('');
     const [availableModels, setAvailableModels] = useState([]);
     const [formData, setFormData] = useState({
-        plate: '',
-        brand: '',
-        model: '',
-        year: CURRENT_YEAR.toString(),
-        color: '',
-        vin: '',
-        client_name: '',
-        client_phone: '',
-        client_email: '',
-        client_cedula: '',
+        plate: '', brand: '', model: '', year: CURRENT_YEAR.toString(),
+        color: '', vin: '', client_name: '', client_phone: '', client_email: '', client_cedula: '',
     });
 
-    const fetchVehicles = useCallback(async () => {
+    const fetchData = useCallback(async () => {
         try {
-            const response = await vehiclesAPI.getAll();
-            setVehicles(response.data);
+            setLoading(true);
+            const statusParam = statusFilter !== 'all' ? statusFilter : null;
+            const [vehiclesRes, techniciansRes] = await Promise.all([
+                vehiclesAPI.getAll(statusParam),
+                usersAPI.getTechnicians(),
+            ]);
+            setVehicles(vehiclesRes.data);
+            setTechnicians(techniciansRes.data);
         } catch (error) {
-            console.error('Error fetching vehicles:', error);
+            console.error('Error fetching data:', error);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [statusFilter]);
 
     useEffect(() => {
-        fetchVehicles();
-    }, [fetchVehicles]);
+        fetchData();
+    }, [fetchData]);
 
-    // Update available models when brand changes
     useEffect(() => {
         if (formData.brand && CAR_MODELS[formData.brand]) {
             setAvailableModels(CAR_MODELS[formData.brand]);
@@ -117,30 +99,12 @@ export const Vehicles = () => {
         }
     }, [formData.brand]);
 
-    const handleBrandChange = (value) => {
-        setFormData(prev => ({ ...prev, brand: value, model: '' }));
-    };
-
-    const handleModelChange = (value) => {
-        setFormData(prev => ({ ...prev, model: value }));
-    };
-
-    const handleYearChange = (value) => {
-        setFormData(prev => ({ ...prev, year: value }));
-    };
-
-    const handleColorChange = (value) => {
-        setFormData(prev => ({ ...prev, color: value }));
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
         if (!formData.brand || !formData.model || !formData.color) {
             toast.error('Completa todos los campos del vehículo');
             return;
         }
-
         try {
             await vehiclesAPI.create({
                 ...formData,
@@ -149,22 +113,37 @@ export const Vehicles = () => {
             });
             toast.success('Vehículo registrado exitosamente');
             setDialogOpen(false);
-            fetchVehicles();
+            fetchData();
             setFormData({
-                plate: '',
-                brand: '',
-                model: '',
-                year: CURRENT_YEAR.toString(),
-                color: '',
-                vin: '',
-                client_name: '',
-                client_phone: '',
-                client_email: '',
-                client_cedula: '',
+                plate: '', brand: '', model: '', year: CURRENT_YEAR.toString(),
+                color: '', vin: '', client_name: '', client_phone: '', client_email: '', client_cedula: '',
             });
         } catch (error) {
             toast.error(error.response?.data?.detail || 'Error al registrar vehículo');
         }
+    };
+
+    const handleAssignTechnician = async () => {
+        if (!selectedVehicle || !selectedTechnician) {
+            toast.error('Selecciona un técnico');
+            return;
+        }
+        try {
+            await vehiclesAPI.assignTechnician(selectedVehicle.id, selectedTechnician);
+            toast.success('Técnico asignado correctamente');
+            setAssignDialogOpen(false);
+            setSelectedVehicle(null);
+            setSelectedTechnician('');
+            fetchData();
+        } catch (error) {
+            toast.error(error.response?.data?.detail || 'Error al asignar técnico');
+        }
+    };
+
+    const openAssignDialog = (vehicle) => {
+        setSelectedVehicle(vehicle);
+        setSelectedTechnician(vehicle.assigned_technician_id || '');
+        setAssignDialogOpen(true);
     };
 
     const filteredVehicles = vehicles.filter(v => 
@@ -180,7 +159,7 @@ export const Vehicles = () => {
                 <div>
                     <h1 className="font-heading text-3xl md:text-4xl">Vehículos</h1>
                     <p className="text-muted-foreground">
-                        Registro e ingreso de vehículos al taller
+                        Gestión de vehículos y asignación de técnicos
                     </p>
                 </div>
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -193,170 +172,137 @@ export const Vehicles = () => {
                     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="font-heading text-xl">Registrar Vehículo</DialogTitle>
-                            <DialogDescription>Ingrese los datos del vehículo y del cliente propietario</DialogDescription>
+                            <DialogDescription>Ingrese los datos del vehículo y cliente</DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* Vehicle Info */}
                             <div className="space-y-4">
                                 <h3 className="font-heading text-lg flex items-center gap-2">
-                                    <Car className="w-4 h-4" />
-                                    Datos del Vehículo
+                                    <Car className="w-4 h-4" /> Datos del Vehículo
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="plate">Placa *</Label>
-                                        <Input
-                                            id="plate"
-                                            value={formData.plate}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, plate: e.target.value.toUpperCase() }))}
-                                            required
-                                            className="font-mono"
-                                            placeholder="ABC123"
-                                            data-testid="vehicle-plate"
-                                        />
+                                        <Label>Placa *</Label>
+                                        <Input value={formData.plate} onChange={(e) => setFormData(prev => ({ ...prev, plate: e.target.value.toUpperCase() }))} required className="font-mono" placeholder="ABC123" data-testid="vehicle-plate" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Año *</Label>
-                                        <Select value={formData.year} onValueChange={handleYearChange}>
-                                            <SelectTrigger data-testid="vehicle-year">
-                                                <SelectValue placeholder="Año" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {YEARS.map((year) => (
-                                                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                                                ))}
-                                            </SelectContent>
+                                        <Select value={formData.year} onValueChange={(v) => setFormData(prev => ({ ...prev, year: v }))}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>{YEARS.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Marca *</Label>
-                                        <Select value={formData.brand} onValueChange={handleBrandChange}>
-                                            <SelectTrigger data-testid="vehicle-brand">
-                                                <SelectValue placeholder="Seleccionar marca" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {CAR_BRANDS.map((brand) => (
-                                                    <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-                                                ))}
-                                            </SelectContent>
+                                        <Select value={formData.brand} onValueChange={(v) => setFormData(prev => ({ ...prev, brand: v, model: '' }))}>
+                                            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                                            <SelectContent>{CAR_BRANDS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Modelo *</Label>
-                                        <Select 
-                                            value={formData.model} 
-                                            onValueChange={handleModelChange}
-                                            disabled={!formData.brand}
-                                        >
-                                            <SelectTrigger data-testid="vehicle-model">
-                                                <SelectValue placeholder={formData.brand ? "Seleccionar modelo" : "Primero seleccione marca"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {availableModels.map((model) => (
-                                                    <SelectItem key={model} value={model}>{model}</SelectItem>
-                                                ))}
-                                            </SelectContent>
+                                        <Select value={formData.model} onValueChange={(v) => setFormData(prev => ({ ...prev, model: v }))} disabled={!formData.brand}>
+                                            <SelectTrigger><SelectValue placeholder={formData.brand ? "Seleccionar" : "Primero marca"} /></SelectTrigger>
+                                            <SelectContent>{availableModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Color *</Label>
-                                        <Select value={formData.color} onValueChange={handleColorChange}>
-                                            <SelectTrigger data-testid="vehicle-color">
-                                                <SelectValue placeholder="Seleccionar color" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {COLORS.map((color) => (
-                                                    <SelectItem key={color} value={color}>{color}</SelectItem>
-                                                ))}
-                                            </SelectContent>
+                                        <Select value={formData.color} onValueChange={(v) => setFormData(prev => ({ ...prev, color: v }))}>
+                                            <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                                            <SelectContent>{COLORS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="vin">VIN</Label>
-                                        <Input
-                                            id="vin"
-                                            value={formData.vin}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, vin: e.target.value.toUpperCase() }))}
-                                            className="font-mono"
-                                            placeholder="Opcional"
-                                            data-testid="vehicle-vin"
-                                        />
+                                        <Label>VIN</Label>
+                                        <Input value={formData.vin} onChange={(e) => setFormData(prev => ({ ...prev, vin: e.target.value.toUpperCase() }))} className="font-mono" placeholder="Opcional" />
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Client Info */}
                             <div className="space-y-4">
                                 <h3 className="font-heading text-lg flex items-center gap-2">
-                                    <User className="w-4 h-4" />
-                                    Datos del Cliente
+                                    <User className="w-4 h-4" /> Datos del Cliente
                                 </h3>
                                 <div className="space-y-2">
-                                    <Label htmlFor="client_name">Nombre Completo *</Label>
-                                    <Input
-                                        id="client_name"
-                                        value={formData.client_name}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, client_name: e.target.value }))}
-                                        required
-                                        data-testid="vehicle-client-name"
-                                    />
+                                    <Label>Nombre *</Label>
+                                    <Input value={formData.client_name} onChange={(e) => setFormData(prev => ({ ...prev, client_name: e.target.value }))} required />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="client_phone">Teléfono *</Label>
-                                        <Input
-                                            id="client_phone"
-                                            value={formData.client_phone}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, client_phone: e.target.value }))}
-                                            required
-                                            data-testid="vehicle-client-phone"
-                                        />
+                                        <Label>Teléfono *</Label>
+                                        <Input value={formData.client_phone} onChange={(e) => setFormData(prev => ({ ...prev, client_phone: e.target.value }))} required />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="client_cedula">Cédula</Label>
-                                        <Input
-                                            id="client_cedula"
-                                            value={formData.client_cedula}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, client_cedula: e.target.value }))}
-                                            data-testid="vehicle-client-cedula"
-                                        />
+                                        <Label>Cédula</Label>
+                                        <Input value={formData.client_cedula} onChange={(e) => setFormData(prev => ({ ...prev, client_cedula: e.target.value }))} />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="client_email">Email</Label>
-                                    <Input
-                                        id="client_email"
-                                        type="email"
-                                        value={formData.client_email}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, client_email: e.target.value }))}
-                                        data-testid="vehicle-client-email"
-                                    />
+                                    <Label>Email</Label>
+                                    <Input type="email" value={formData.client_email} onChange={(e) => setFormData(prev => ({ ...prev, client_email: e.target.value }))} />
                                 </div>
                             </div>
-
-                            <Button type="submit" className="w-full brand-glow" data-testid="submit-vehicle-btn">
-                                Registrar Vehículo
-                            </Button>
+                            <Button type="submit" className="w-full brand-glow">Registrar Vehículo</Button>
                         </form>
                     </DialogContent>
                 </Dialog>
             </div>
 
-            {/* Search */}
-            <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                    placeholder="Buscar por placa, cliente o marca..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                    data-testid="vehicle-search"
-                />
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input placeholder="Buscar por placa, cliente o marca..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                </div>
+                <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full sm:w-auto">
+                    <TabsList className="grid grid-cols-3 sm:grid-cols-6 h-auto">
+                        {STATUS_FILTERS.map(f => (
+                            <TabsTrigger key={f.value} value={f.value} className="text-xs px-2 py-1.5">
+                                {f.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </Tabs>
             </div>
+
+            {/* Assign Technician Dialog */}
+            <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="font-heading text-xl">Asignar Técnico</DialogTitle>
+                        <DialogDescription>
+                            {selectedVehicle && `Vehículo: ${selectedVehicle.plate} - ${selectedVehicle.brand} ${selectedVehicle.model}`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Seleccionar Técnico</Label>
+                            <Select value={selectedTechnician} onValueChange={setSelectedTechnician}>
+                                <SelectTrigger data-testid="assign-technician-select">
+                                    <SelectValue placeholder="Seleccionar técnico..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {technicians.map(tech => (
+                                        <SelectItem key={tech.id} value={tech.id}>
+                                            <div className="flex items-center gap-2">
+                                                <Wrench className="w-4 h-4" />
+                                                {tech.name}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button onClick={handleAssignTechnician} className="w-full brand-glow" disabled={!selectedTechnician} data-testid="confirm-assign-btn">
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Confirmar Asignación
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Vehicles Grid */}
             {loading ? (
@@ -366,8 +312,7 @@ export const Vehicles = () => {
             ) : filteredVehicles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                     <Car className="w-16 h-16 mb-4 opacity-50" />
-                    <p className="text-lg">No hay vehículos registrados</p>
-                    <p className="text-sm">Registra el primer vehículo para comenzar</p>
+                    <p className="text-lg">No hay vehículos {statusFilter !== 'all' ? 'con este estado' : 'registrados'}</p>
                 </div>
             ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -386,10 +331,12 @@ export const Vehicles = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    <span className="px-2 py-1 rounded bg-muted text-xs">
-                                        {vehicle.color}
-                                    </span>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="px-2 py-0.5 rounded bg-muted text-xs">{vehicle.color}</span>
+                                        {vehicle.status && <VehicleStatusBadge status={vehicle.status} />}
+                                    </div>
                                 </div>
+                                
                                 <div className="space-y-2 pt-3 border-t">
                                     <div className="flex items-center gap-2 text-sm">
                                         <User className="w-4 h-4 text-muted-foreground" />
@@ -405,7 +352,29 @@ export const Vehicles = () => {
                                             <span className="truncate">{vehicle.client_email}</span>
                                         </div>
                                     )}
+                                    {vehicle.assigned_technician_name && (
+                                        <div className="flex items-center gap-2 text-sm text-primary">
+                                            <Wrench className="w-4 h-4" />
+                                            <span>{vehicle.assigned_technician_name}</span>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* Action buttons */}
+                                {vehicle.status && ['ingresado', 'agendado'].includes(vehicle.status) && (
+                                    <div className="mt-3 pt-3 border-t">
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            className="w-full"
+                                            onClick={() => openAssignDialog(vehicle)}
+                                            data-testid={`assign-btn-${vehicle.id}`}
+                                        >
+                                            <UserPlus className="w-4 h-4 mr-2" />
+                                            Asignar Técnico
+                                        </Button>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     ))}
