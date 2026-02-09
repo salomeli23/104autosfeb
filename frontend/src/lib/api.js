@@ -49,9 +49,12 @@ export const usersAPI = {
 // Vehicles endpoints
 export const vehiclesAPI = {
     create: (data) => api.post('/vehicles', data),
-    getAll: () => api.get('/vehicles'),
+    getAll: (status) => api.get('/vehicles', { params: status ? { status } : {} }),
     getById: (id) => api.get(`/vehicles/${id}`),
     getByPlate: (plate) => api.get(`/vehicles/plate/${plate}`),
+    updateStatus: (id, status) => api.put(`/vehicles/${id}/status`, { status }),
+    assignTechnician: (vehicleId, technicianId) => 
+        api.put(`/vehicles/${vehicleId}/assign-technician`, { technician_id: technicianId }),
 };
 
 // Appointments endpoints
