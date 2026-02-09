@@ -430,9 +430,53 @@ async def get_vehicle_by_plate(plate: str, current_user: dict = Depends(get_curr
 @api_router.post("/appointments", response_model=AppointmentResponse)
 async def create_appointment(appointment: AppointmentCreate, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     appointment_id = str(uuid.uuid4())
+    vehicle_id = None
+    
+    # If plate is provided, create or update vehicle
+    if appointment.plate:
+        plate_upper = appointment.plate.upper()
+        existing_vehicle = await db.vehicles.find_one({"plate": plate_upper}, {"_id": 0})
+        
+        if existing_vehicle:
+            # Update existing vehicle with new appointment
+            vehicle_id = existing_vehicle["id"]
+            await db.vehicles.update_one(
+                {"id": vehicle_id},
+                {"$set": {
+                    "status": VehicleStatus.AGENDADO.value,
+                    "client_name": appointment.client_name,
+                    "client_phone": appointment.client_phone,
+                    "client_email": appointment.client_email,
+                }}
+            )
+        else:
+            # Create new vehicle
+            vehicle_id = str(uuid.uuid4())
+            vehicle_doc = {
+                "id": vehicle_id,
+                "plate": plate_upper,
+                "brand": appointment.brand or "",
+                "model": appointment.model or "",
+                "year": datetime.now().year,
+                "color": "",
+                "vin": None,
+                "client_name": appointment.client_name,
+                "client_phone": appointment.client_phone,
+                "client_email": appointment.client_email,
+                "client_cedula": None,
+                "status": VehicleStatus.AGENDADO.value,
+                "assigned_technician_id": None,
+                "assigned_technician_name": None,
+                "current_service_order_id": None,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_by": current_user["id"]
+            }
+            await db.vehicles.insert_one(vehicle_doc)
+    
     appointment_doc = {
         "id": appointment_id,
         **appointment.model_dump(),
+        "vehicle_id": vehicle_id,
         "services": [s.value for s in appointment.services],
         "status": ServiceStatus.AGENDADO.value,
         "created_at": datetime.now(timezone.utc).isoformat(),
