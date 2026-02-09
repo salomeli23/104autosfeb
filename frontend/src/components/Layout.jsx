@@ -29,6 +29,7 @@ import {
     Moon,
     User,
     ChevronRight,
+    UserPlus,
 } from 'lucide-react';
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_techgarage-app/artifacts/8kw8x7h6_Captura%20de%20Pantalla%202026-01-30%20a%20la%28s%29%2011.36.02%20a.%C2%A0m..png";
@@ -38,6 +39,7 @@ const navItems = [
     { path: '/appointments', label: 'Agendamiento', icon: Calendar, roles: ['admin', 'asesor'] },
     { path: '/vehicles', label: 'Vehículos', icon: Car, roles: ['admin', 'asesor', 'tecnico'] },
     { path: '/inspections', label: 'Revisión 360°', icon: ClipboardCheck, roles: ['admin', 'asesor', 'tecnico'] },
+    { path: '/assign', label: 'Asignar', icon: UserPlus, roles: ['admin', 'asesor'] },
     { path: '/quotes', label: 'Cotizaciones', icon: FileText, roles: ['admin', 'asesor'] },
     { path: '/service-orders', label: 'Órdenes', icon: Wrench, roles: ['admin', 'asesor', 'tecnico'] },
     { path: '/settings', label: 'Configuración', icon: Settings, roles: ['admin'] },
