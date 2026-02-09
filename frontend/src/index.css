@@ -183,3 +183,15 @@
         display: contents !important;
     }
 }
+
+/* Hide Emergent branding */
+[class*="emergent"],
+[id*="emergent"],
+a[href*="emergent"],
+div[style*="Made with"],
+div:has(> a[href*="emergent"]) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
