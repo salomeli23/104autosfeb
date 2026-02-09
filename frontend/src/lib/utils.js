@@ -19,6 +19,14 @@ export const STATUS_LABELS = {
     terminado: 'Terminado',
 };
 
+export const VEHICLE_STATUS_LABELS = {
+    agendado: 'Agendado',
+    ingresado: 'Ingresado',
+    con_tecnico: 'Con Técnico',
+    en_proceso: 'En Proceso',
+    finalizado: 'Finalizado',
+};
+
 export const ROLE_LABELS = {
     admin: 'Administrador',
     asesor: 'Asesor Comercial',
